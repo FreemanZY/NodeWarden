@@ -68,7 +68,7 @@ interface CiphersImportRequest {
 
 // POST /api/ciphers/import - Bitwarden client import endpoint
 export async function handleCiphersImport(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   let importData: CiphersImportRequest;
   try {

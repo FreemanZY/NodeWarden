@@ -18,7 +18,7 @@ function formatAttachments(attachments: Attachment[]): any[] | null {
 
 // GET /api/sync
 export async function handleSync(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   
   const user = await storage.getUserById(userId);
   if (!user) {

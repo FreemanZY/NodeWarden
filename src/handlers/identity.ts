@@ -6,9 +6,9 @@ import { jsonResponse, errorResponse, identityErrorResponse } from '../utils/res
 
 // POST /identity/connect/token
 export async function handleToken(request: Request, env: Env): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const auth = new AuthService(env);
-  const rateLimit = new RateLimitService(env.VAULT);
+  const rateLimit = new RateLimitService(env.DB);
 
   let body: Record<string, string>;
   const contentType = request.headers.get('content-type') || '';
@@ -28,7 +28,8 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
     const passwordHash = body.password;
 
     if (!email || !passwordHash) {
-      return errorResponse('Email and password are required', 400);
+  // Bitwarden clients expect OAuth-style error fields.
+  return identityErrorResponse('Email and password are required', 'invalid_request', 400);
     }
 
     const user = await storage.getUser(email);
@@ -156,7 +157,7 @@ export async function handleToken(request: Request, env: Env): Promise<Response>
 
 // POST /identity/accounts/prelogin
 export async function handlePrelogin(request: Request, env: Env): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   let body: { email?: string };
   try {

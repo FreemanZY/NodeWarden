@@ -659,7 +659,7 @@ const registerPageHTML = `<!DOCTYPE html>
 </html>`;
 
 export async function handleRegisterPage(request: Request, env: Env): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const disabled = await storage.isSetupDisabled();
   if (disabled) {
     return new Response(null, { status: 404 });

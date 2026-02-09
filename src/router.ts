@@ -200,7 +200,7 @@ export async function handleRequest(request: Request, env: Env): Promise<Respons
     const userId = payload.sub;
 
     // API rate limiting for authenticated requests
-    const rateLimit = new RateLimitService(env.VAULT);
+  const rateLimit = new RateLimitService(env.DB);
     const clientId = getClientIdentifier(request);
     const rateLimitCheck = await rateLimit.checkApiRateLimit(userId + ':' + clientId);
     

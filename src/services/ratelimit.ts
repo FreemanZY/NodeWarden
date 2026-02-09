@@ -1,133 +1,107 @@
-import { Env } from '../types';
+// D1-backed rate limiting.
+// Notes:
+// - Login attempts are tracked per email.
+// - API rate is tracked per identifier per fixed window.
 
 // Rate limit configuration
 const CONFIG = {
-  // Login attempt limits
-  LOGIN_MAX_ATTEMPTS: 15,          // Max failed login attempts
-  LOGIN_LOCKOUT_MINUTES: 5,        // Lockout duration after max attempts
-  
-  // API rate limits (per minute)
-  API_REQUESTS_PER_MINUTE: 300,    // General API rate limit
-  API_WINDOW_SECONDS: 60,          // Rate limit window
-};
+  LOGIN_MAX_ATTEMPTS: 15,
+  LOGIN_LOCKOUT_MINUTES: 5,
 
-// KV key prefixes
-const KEYS = {
-  LOGIN_ATTEMPTS: 'ratelimit:login:',
-  API_RATE: 'ratelimit:api:',
+  API_REQUESTS_PER_MINUTE: 300,
+  API_WINDOW_SECONDS: 60,
 };
 
 export class RateLimitService {
-  constructor(private kv: KVNamespace) {}
+  constructor(private db: D1Database) {}
 
-  /**
-   * Check and record login attempt
-   * Returns { allowed: boolean, remainingAttempts: number, retryAfterSeconds?: number }
-   */
   async checkLoginAttempt(email: string): Promise<{
     allowed: boolean;
     remainingAttempts: number;
     retryAfterSeconds?: number;
   }> {
-    const key = `${KEYS.LOGIN_ATTEMPTS}${email.toLowerCase()}`;
-    const data = await this.kv.get(key);
-    
-    if (!data) {
+    const key = email.toLowerCase();
+    const now = Date.now();
+
+    const row = await this.db
+      .prepare('SELECT attempts, locked_until FROM login_attempts WHERE email = ?')
+      .bind(key)
+      .first<{ attempts: number; locked_until: number | null }>();
+
+    if (!row) {
       return { allowed: true, remainingAttempts: CONFIG.LOGIN_MAX_ATTEMPTS };
     }
 
-    const record: { attempts: number; lockedUntil?: number } = JSON.parse(data);
-    const now = Date.now();
-
-    // Check if currently locked out
-    if (record.lockedUntil && record.lockedUntil > now) {
-      const retryAfterSeconds = Math.ceil((record.lockedUntil - now) / 1000);
+    if (row.locked_until && row.locked_until > now) {
       return {
         allowed: false,
         remainingAttempts: 0,
-        retryAfterSeconds,
+        retryAfterSeconds: Math.ceil((row.locked_until - now) / 1000),
       };
     }
 
-    // If lockout expired, reset
-    if (record.lockedUntil && record.lockedUntil <= now) {
-      await this.kv.delete(key);
+    if (row.locked_until && row.locked_until <= now) {
+      await this.db.prepare('DELETE FROM login_attempts WHERE email = ?').bind(key).run();
       return { allowed: true, remainingAttempts: CONFIG.LOGIN_MAX_ATTEMPTS };
     }
 
-    const remainingAttempts = CONFIG.LOGIN_MAX_ATTEMPTS - record.attempts;
+    const remainingAttempts = Math.max(0, CONFIG.LOGIN_MAX_ATTEMPTS - (row.attempts || 0));
     return { allowed: true, remainingAttempts };
   }
 
-  /**
-   * Record a failed login attempt
-   */
-  async recordFailedLogin(email: string): Promise<{
-    locked: boolean;
-    retryAfterSeconds?: number;
-  }> {
-    const key = `${KEYS.LOGIN_ATTEMPTS}${email.toLowerCase()}`;
-    const data = await this.kv.get(key);
-    
-    let record: { attempts: number; lockedUntil?: number };
-    
-    if (data) {
-      record = JSON.parse(data);
-      record.attempts += 1;
-    } else {
-      record = { attempts: 1 };
-    }
+  async recordFailedLogin(email: string): Promise<{ locked: boolean; retryAfterSeconds?: number }> {
+    const key = email.toLowerCase();
+    const now = Date.now();
 
-    // Check if should lock out
-    if (record.attempts >= CONFIG.LOGIN_MAX_ATTEMPTS) {
-      record.lockedUntil = Date.now() + CONFIG.LOGIN_LOCKOUT_MINUTES * 60 * 1000;
-      await this.kv.put(key, JSON.stringify(record), {
-        expirationTtl: CONFIG.LOGIN_LOCKOUT_MINUTES * 60 + 60, // Extra minute buffer
-      });
-      return {
-        locked: true,
-        retryAfterSeconds: CONFIG.LOGIN_LOCKOUT_MINUTES * 60,
-      };
-    }
+    // D1 in Workers forbids raw BEGIN/COMMIT statements.
+    // Use a single atomic UPSERT to increment attempts.
+    // This is concurrency-safe because the row is keyed by email.
+    await this.db
+      .prepare(
+        'INSERT INTO login_attempts(email, attempts, locked_until, updated_at) VALUES(?, 1, NULL, ?) ' +
+        'ON CONFLICT(email) DO UPDATE SET attempts = attempts + 1, updated_at = excluded.updated_at'
+      )
+      .bind(key, now)
+      .run();
 
-    // Store with expiration (auto-reset after lockout period even without lockout)
-    await this.kv.put(key, JSON.stringify(record), {
-      expirationTtl: CONFIG.LOGIN_LOCKOUT_MINUTES * 60,
-    });
+    const row = await this.db
+      .prepare('SELECT attempts FROM login_attempts WHERE email = ?')
+      .bind(key)
+      .first<{ attempts: number }>();
+
+    const attempts = row?.attempts || 1;
+    if (attempts >= CONFIG.LOGIN_MAX_ATTEMPTS) {
+      const lockedUntil = now + CONFIG.LOGIN_LOCKOUT_MINUTES * 60 * 1000;
+      await this.db
+        .prepare('UPDATE login_attempts SET locked_until = ?, updated_at = ? WHERE email = ?')
+        .bind(lockedUntil, now, key)
+        .run();
+      return { locked: true, retryAfterSeconds: CONFIG.LOGIN_LOCKOUT_MINUTES * 60 };
+    }
 
     return { locked: false };
   }
 
-  /**
-   * Clear login attempts on successful login
-   */
   async clearLoginAttempts(email: string): Promise<void> {
-    const key = `${KEYS.LOGIN_ATTEMPTS}${email.toLowerCase()}`;
-    await this.kv.delete(key);
+    await this.db.prepare('DELETE FROM login_attempts WHERE email = ?').bind(email.toLowerCase()).run();
   }
 
-  /**
-   * Check API rate limit for a user or IP
-   * Returns { allowed: boolean, remaining: number, retryAfterSeconds?: number }
-   */
-  async checkApiRateLimit(identifier: string): Promise<{
-    allowed: boolean;
-    remaining: number;
-    retryAfterSeconds?: number;
-  }> {
-    const now = Math.floor(Date.now() / 1000);
-    const windowStart = now - (now % CONFIG.API_WINDOW_SECONDS);
-    const key = `${KEYS.API_RATE}${identifier}:${windowStart}`;
+  async checkApiRateLimit(identifier: string): Promise<{ allowed: boolean; remaining: number; retryAfterSeconds?: number }> {
+    const nowSec = Math.floor(Date.now() / 1000);
+    const windowStart = nowSec - (nowSec % CONFIG.API_WINDOW_SECONDS);
+    const windowEnd = windowStart + CONFIG.API_WINDOW_SECONDS;
 
-    const countStr = await this.kv.get(key);
-    const count = countStr ? parseInt(countStr, 10) : 0;
+    const row = await this.db
+      .prepare('SELECT count FROM api_rate_limits WHERE identifier = ? AND window_start = ?')
+      .bind(identifier, windowStart)
+      .first<{ count: number }>();
 
+    const count = row?.count || 0;
     if (count >= CONFIG.API_REQUESTS_PER_MINUTE) {
-      const retryAfterSeconds = CONFIG.API_WINDOW_SECONDS - (now % CONFIG.API_WINDOW_SECONDS);
       return {
         allowed: false,
         remaining: 0,
-        retryAfterSeconds,
+        retryAfterSeconds: windowEnd - nowSec,
       };
     }
 
@@ -137,35 +111,27 @@ export class RateLimitService {
     };
   }
 
-  /**
-   * Increment API request count
-   */
   async incrementApiCount(identifier: string): Promise<void> {
-    const now = Math.floor(Date.now() / 1000);
-    const windowStart = now - (now % CONFIG.API_WINDOW_SECONDS);
-    const key = `${KEYS.API_RATE}${identifier}:${windowStart}`;
+    const nowSec = Math.floor(Date.now() / 1000);
+    const windowStart = nowSec - (nowSec % CONFIG.API_WINDOW_SECONDS);
 
-    const countStr = await this.kv.get(key);
-    const count = countStr ? parseInt(countStr, 10) : 0;
-
-    await this.kv.put(key, (count + 1).toString(), {
-      expirationTtl: CONFIG.API_WINDOW_SECONDS + 10, // Slight buffer
-    });
+    // Atomic increment via UPSERT.
+    await this.db
+      .prepare(
+        'INSERT INTO api_rate_limits(identifier, window_start, count) VALUES(?, ?, 1) ' +
+        'ON CONFLICT(identifier, window_start) DO UPDATE SET count = count + 1'
+      )
+      .bind(identifier, windowStart)
+      .run();
   }
 }
 
-/**
- * Get client identifier from request (IP or CF-Connecting-IP)
- */
 export function getClientIdentifier(request: Request): string {
-  // Cloudflare provides the real client IP
   const cfIp = request.headers.get('CF-Connecting-IP');
   if (cfIp) return cfIp;
 
-  // Fallback for local development
   const forwardedFor = request.headers.get('X-Forwarded-For');
   if (forwardedFor) return forwardedFor.split(',')[0].trim();
 
-  // Last resort
   return 'unknown';
 }

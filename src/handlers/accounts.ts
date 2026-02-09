@@ -14,7 +14,7 @@ function jwtSecretUnsafeReason(env: Env): 'missing' | 'default' | 'too_short' | 
 
 // POST /api/accounts/register (only used from setup page, not client)
 export async function handleRegister(request: Request, env: Env): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   // Enforce safe JWT_SECRET before allowing first registration.
   const unsafe = jwtSecretUnsafeReason(env);
@@ -96,7 +96,7 @@ export async function handleRegister(request: Request, env: Env): Promise<Respon
 
 // GET /api/accounts/profile
 export async function handleGetProfile(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const user = await storage.getUserById(userId);
 
   if (!user) {
@@ -132,7 +132,7 @@ export async function handleGetProfile(request: Request, env: Env, userId: strin
 
 // PUT /api/accounts/profile
 export async function handleUpdateProfile(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const user = await storage.getUserById(userId);
 
   if (!user) {
@@ -158,7 +158,7 @@ export async function handleUpdateProfile(request: Request, env: Env, userId: st
 
 // POST /api/accounts/keys
 export async function handleSetKeys(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const user = await storage.getUserById(userId);
 
   if (!user) {
@@ -189,7 +189,7 @@ export async function handleSetKeys(request: Request, env: Env, userId: string):
 
 // GET /api/accounts/revision-date
 export async function handleGetRevisionDate(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const revisionDate = await storage.getRevisionDate(userId);
   
   // Return as milliseconds timestamp (Bitwarden format)
@@ -199,7 +199,7 @@ export async function handleGetRevisionDate(request: Request, env: Env, userId: 
 
 // POST /api/accounts/verify-password
 export async function handleVerifyPassword(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const user = await storage.getUserById(userId);
 
   if (!user) {

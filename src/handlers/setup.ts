@@ -15,7 +15,7 @@ function getJwtSecretState(env: Env): JwtSecretState | null {
 
 // GET / - Setup page
 export async function handleSetupPage(request: Request, env: Env): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const disabled = await storage.isSetupDisabled();
   if (disabled) {
     return new Response(null, { status: 404 });
@@ -33,7 +33,7 @@ export async function handleSetupPage(request: Request, env: Env): Promise<Respo
 
 // GET /setup/status
 export async function handleSetupStatus(request: Request, env: Env): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const registered = await storage.isRegistered();
   const disabled = await storage.isSetupDisabled();
   return jsonResponse({ registered, disabled });
@@ -41,7 +41,7 @@ export async function handleSetupStatus(request: Request, env: Env): Promise<Res
 
 // POST /setup/disable
 export async function handleDisableSetup(request: Request, env: Env): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const registered = await storage.isRegistered();
   if (!registered) {
     return errorResponse('Registration required', 403);

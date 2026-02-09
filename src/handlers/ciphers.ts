@@ -57,7 +57,7 @@ function cipherToResponse(cipher: Cipher, attachments: Attachment[] = []): Ciphe
 
 // GET /api/ciphers
 export async function handleGetCiphers(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const ciphers = await storage.getAllCiphers(userId);
 
   // Filter out soft-deleted ciphers unless specifically requested
@@ -84,7 +84,7 @@ export async function handleGetCiphers(request: Request, env: Env, userId: strin
 
 // GET /api/ciphers/:id
 export async function handleGetCipher(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const cipher = await storage.getCipher(id);
 
   if (!cipher || cipher.userId !== userId) {
@@ -97,7 +97,7 @@ export async function handleGetCipher(request: Request, env: Env, userId: string
 
 // POST /api/ciphers
 export async function handleCreateCipher(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   let body: any;
   try {
@@ -141,7 +141,7 @@ export async function handleCreateCipher(request: Request, env: Env, userId: str
 
 // PUT /api/ciphers/:id
 export async function handleUpdateCipher(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const existingCipher = await storage.getCipher(id);
 
   if (!existingCipher || existingCipher.userId !== userId) {
@@ -186,7 +186,7 @@ export async function handleUpdateCipher(request: Request, env: Env, userId: str
 
 // DELETE /api/ciphers/:id
 export async function handleDeleteCipher(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const cipher = await storage.getCipher(id);
 
   if (!cipher || cipher.userId !== userId) {
@@ -204,7 +204,7 @@ export async function handleDeleteCipher(request: Request, env: Env, userId: str
 
 // DELETE /api/ciphers/:id (permanent)
 export async function handlePermanentDeleteCipher(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const cipher = await storage.getCipher(id);
 
   if (!cipher || cipher.userId !== userId) {
@@ -222,7 +222,7 @@ export async function handlePermanentDeleteCipher(request: Request, env: Env, us
 
 // PUT /api/ciphers/:id/restore
 export async function handleRestoreCipher(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const cipher = await storage.getCipher(id);
 
   if (!cipher || cipher.userId !== userId) {
@@ -239,7 +239,7 @@ export async function handleRestoreCipher(request: Request, env: Env, userId: st
 
 // PUT /api/ciphers/:id/partial - Update only favorite/folderId
 export async function handlePartialUpdateCipher(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const cipher = await storage.getCipher(id);
 
   if (!cipher || cipher.userId !== userId) {
@@ -269,7 +269,7 @@ export async function handlePartialUpdateCipher(request: Request, env: Env, user
 
 // POST/PUT /api/ciphers/move - Bulk move to folder
 export async function handleBulkMoveCiphers(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   let body: { ids?: string[]; folderId?: string | null };
   try {

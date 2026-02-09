@@ -15,7 +15,7 @@ function folderToResponse(folder: Folder): FolderResponse {
 
 // GET /api/folders
 export async function handleGetFolders(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const folders = await storage.getAllFolders(userId);
 
   return jsonResponse({
@@ -27,7 +27,7 @@ export async function handleGetFolders(request: Request, env: Env, userId: strin
 
 // GET /api/folders/:id
 export async function handleGetFolder(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const folder = await storage.getFolder(id);
 
   if (!folder || folder.userId !== userId) {
@@ -39,7 +39,7 @@ export async function handleGetFolder(request: Request, env: Env, userId: string
 
 // POST /api/folders
 export async function handleCreateFolder(request: Request, env: Env, userId: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   let body: { name?: string };
   try {
@@ -68,7 +68,7 @@ export async function handleCreateFolder(request: Request, env: Env, userId: str
 
 // PUT /api/folders/:id
 export async function handleUpdateFolder(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const folder = await storage.getFolder(id);
 
   if (!folder || folder.userId !== userId) {
@@ -94,7 +94,7 @@ export async function handleUpdateFolder(request: Request, env: Env, userId: str
 
 // DELETE /api/folders/:id
 export async function handleDeleteFolder(request: Request, env: Env, userId: string, id: string): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const folder = await storage.getFolder(id);
 
   if (!folder || folder.userId !== userId) {

@@ -25,7 +25,7 @@ export async function handleCreateAttachment(
   userId: string,
   cipherId: string
 ): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   // Verify cipher exists and belongs to user
   const cipher = await storage.getCipher(cipherId);
@@ -96,7 +96,7 @@ export async function handleUploadAttachment(
   cipherId: string,
   attachmentId: string
 ): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   // Verify cipher exists and belongs to user
   const cipher = await storage.getCipher(cipherId);
@@ -169,7 +169,7 @@ export async function handleGetAttachment(
   cipherId: string,
   attachmentId: string
 ): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   // Verify cipher exists and belongs to user
   const cipher = await storage.getCipher(cipherId);
@@ -227,7 +227,8 @@ export async function handlePublicDownloadAttachment(
     return errorResponse('Token mismatch', 401);
   }
 
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
+  
 
   // Verify attachment exists
   const attachment = await storage.getAttachment(attachmentId);
@@ -262,7 +263,7 @@ export async function handleDeleteAttachment(
   cipherId: string,
   attachmentId: string
 ): Promise<Response> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
 
   // Verify cipher exists and belongs to user
   const cipher = await storage.getCipher(cipherId);
@@ -348,7 +349,7 @@ export async function deleteAllAttachmentsForCipher(
   env: Env,
   cipherId: string
 ): Promise<void> {
-  const storage = new StorageService(env.VAULT);
+  const storage = new StorageService(env.DB);
   const attachments = await storage.getAttachmentsByCipher(cipherId);
 
   for (const attachment of attachments) {

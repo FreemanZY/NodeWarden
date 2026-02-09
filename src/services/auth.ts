@@ -6,7 +6,7 @@ export class AuthService {
   private storage: StorageService;
 
   constructor(private env: Env) {
-    this.storage = new StorageService(env.VAULT);
+  this.storage = new StorageService(env.DB);
   }
 
   // Verify password hash (compare with stored hash)

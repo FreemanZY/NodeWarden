@@ -1,6 +1,6 @@
 // Environment bindings
 export interface Env {
-  VAULT: KVNamespace;
+  DB: D1Database;
   ATTACHMENTS: R2Bucket;
   JWT_SECRET: string;
 }
