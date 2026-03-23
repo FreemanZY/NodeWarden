@@ -140,6 +140,7 @@ const messages: Record<Locale, Record<string, string>> = {
     txt_backup_type: "Backup Type",
     txt_backup_destination_reserved: "Reserved Slot",
     txt_backup_time: "Backup Time",
+    txt_backup_start_time: "Start Time",
     txt_backup_timezone: "Timezone",
     txt_backup_interval_hours: "Every",
     txt_backup_interval_hours_suffix: "hours",
@@ -164,10 +165,10 @@ const messages: Record<Locale, Record<string, string>> = {
     txt_backup_include_attachments_help_button: "Attachment backup help",
     txt_backup_include_attachments_help: "Attachments are stored incrementally in the remote attachments folder, so later backups usually only upload new files. Deleting an attachment locally does not remove earlier remote copies. During restore, NodeWarden reads the required files from the attachments folder and skips any attachment that is no longer available.",
     txt_backup_enable_schedule: "Enable automatic daily backup",
-    txt_backup_schedule_note: "The worker checks the schedule every 5 minutes and runs the backup as soon as the selected time window is reached.",
+    txt_backup_schedule_note: "The worker checks the schedule every 5 minutes. It starts at the selected time in the selected timezone, then repeats by the chosen hour interval, and resets from that start time each day.",
     txt_backup_schedule_disabled: "Disabled",
     txt_backup_schedule_status: "Schedule",
-    txt_backup_schedule_summary: "Daily at {time} ({timezone})",
+    txt_backup_schedule_summary: "Start at {time}, every {interval} hours ({timezone})",
     txt_backup_schedule_empty: "No automatic backup plans are enabled yet.",
     txt_backup_last_success: "Last Success",
     txt_backup_last_target: "Last Target",
@@ -281,6 +282,10 @@ const messages: Record<Locale, Record<string, string>> = {
     txt_delete_item_failed: "Delete item failed",
     txt_delete_permanently: "Delete Permanently",
     txt_archive: "Archive",
+    txt_archive_item: "Archive Item",
+    txt_archive_item_message: "After archiving, this item will be excluded from general search results and autofill suggestions.",
+    txt_archive_selected_items: "Archive Items",
+    txt_archive_selected_items_message: "After archiving, {count} selected items will be excluded from general search results and autofill suggestions.",
     txt_archived: "Archived",
     txt_archive_selected: "Archive",
     txt_item_archived: "Item archived",
@@ -568,6 +573,8 @@ const messages: Record<Locale, Record<string, string>> = {
     txt_submit: "Submit",
     txt_sync: "Sync",
     txt_sync_vault: "Sync Vault",
+    txt_switch_to_dark_mode: "Switch to dark mode",
+    txt_switch_to_light_mode: "Switch to light mode",
     txt_dash: "-",
     txt_text: "Text",
     txt_text_2fa_recovered: "2FA recovered",
@@ -773,6 +780,7 @@ const zhCNOverrides: Record<string, string> = {
   txt_backup_type: '备份类型',
   txt_backup_destination_reserved: '预留位置',
   txt_backup_time: '备份时间',
+  txt_backup_start_time: '开始时间',
   txt_backup_timezone: '时区',
   txt_backup_interval_hours: '每隔',
   txt_backup_interval_hours_suffix: '小时',
@@ -797,10 +805,10 @@ const zhCNOverrides: Record<string, string> = {
   txt_backup_include_attachments_help_button: '附件备份说明',
   txt_backup_include_attachments_help: '附件会以增量方式保存在远端的 attachments 文件夹中，后续备份通常只上传新增文件。你在本地删除附件时，已经备份到远端的旧文件不会自动删除。恢复时会按需从 attachments 文件夹读取对应附件，找不到的附件会自动跳过。',
   txt_backup_enable_schedule: '启用每日自动备份',
-  txt_backup_schedule_note: 'Worker 每 5 分钟检查一次计划，到达你设定的时间窗口后会尽快执行备份。',
+  txt_backup_schedule_note: 'Worker 每 5 分钟检查一次计划。会先按你选择的时区和开始时间起跑，再按小时间隔继续执行；到了下一天，会重新从开始时间开始。',
   txt_backup_schedule_disabled: '未启用',
   txt_backup_schedule_status: '计划状态',
-  txt_backup_schedule_summary: '每天 {time}（{timezone}）',
+  txt_backup_schedule_summary: '从 {time} 开始，每隔 {interval} 小时（{timezone}）',
   txt_backup_schedule_empty: '还没有启用任何自动备份计划',
   txt_backup_last_success: '上次成功时间',
   txt_backup_last_target: '上次备份位置',
@@ -1197,6 +1205,8 @@ const zhCNOverrides: Record<string, string> = {
   txt_totp_is_enabled_for_this_account: '此账户已启用 TOTP。',
   txt_total_items_count: '共 {count} 项',
   txt_totp_verify_failed: 'TOTP 验证失败',
+  txt_switch_to_dark_mode: '切换到暗黑模式',
+  txt_switch_to_light_mode: '切换到明亮模式',
   txt_trust_this_device_for_30_days: '信任此设备 30 天',
   txt_type_type: '类型 {type}',
   txt_unlock_details: '解锁详情',
@@ -1376,6 +1386,10 @@ zhCNOverrides.txt_import_export_title = '导入导出';
 zhCNOverrides.txt_new_type_header = '新建{type}';
 zhCNOverrides.txt_edit_type_header = '编辑{type}';
 zhCNOverrides.txt_archive = '归档';
+zhCNOverrides.txt_archive_item = '归档项目';
+zhCNOverrides.txt_archive_item_message = '归档后，此项目将被排除在一般搜索结果和自动填充建议之外。';
+zhCNOverrides.txt_archive_selected_items = '归档项目';
+zhCNOverrides.txt_archive_selected_items_message = '归档后，所选的 {count} 个项目将被排除在一般搜索结果和自动填充建议之外。';
 zhCNOverrides.txt_archived = '已归档';
 zhCNOverrides.txt_archive_selected = '归档';
 zhCNOverrides.txt_item_archived = '项目已归档';
