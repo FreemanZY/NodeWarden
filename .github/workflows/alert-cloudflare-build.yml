@@ -1,0 +1,56 @@
+name: Alert on Cloudflare build failure
+
+on:
+  check_run:
+    types: [completed]
+
+permissions:
+  contents: read
+  issues: write
+  checks: read
+
+concurrency:
+  group: cloudflare-build-alert
+  cancel-in-progress: false
+
+jobs:
+  failure:
+    if: github.event.check_run.name == 'Workers Builds: nodewarden' && github.event.check_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open or update alert issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.check_run.head_sha }}
+          BUILD_URL: ${{ github.event.check_run.details_url }}
+          BUILD_ID: ${{ github.event.check_run.external_id }}
+        run: |
+          set -euo pipefail
+          short=${SHA:0:7}
+          title="[Cloudflare build failure] $short"
+          existing=$(gh issue list --repo "$REPO" --state open --limit 100 \
+            --json number,title --jq '.[] | select(.title | startswith("[Cloudflare build failure]")) | .number' | head -n1)
+          body=$(printf 'Cloudflare Workers build failed.\n\n- Commit: `%s`\n- Build: %s\n- Build ID: `%s`\n\nReview the build log before retrying. This workflow did not change or redeploy anything.\n' "$SHA" "$BUILD_URL" "$BUILD_ID")
+          if [ -z "$existing" ]; then
+            gh issue create --repo "$REPO" --title "$title" --body "$body" --assignee "${REPO%%/*}"
+          else
+            gh issue comment "$existing" --repo "$REPO" --body "Build is still failing for \`$SHA\`."
+          fi
+
+  success:
+    if: github.event.check_run.name == 'Workers Builds: nodewarden' && github.event.check_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close resolved alert issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.check_run.head_sha }}
+        run: |
+          set -euo pipefail
+          numbers=$(gh issue list --repo "$REPO" --state open --limit 100 \
+            --json number,title --jq '.[] | select(.title | startswith("[Cloudflare build failure]")) | .number')
+          for n in $numbers; do
+            gh issue close "$n" --repo "$REPO" --comment "Cloudflare build succeeded for \`$SHA\`; alert resolved."
+          done
