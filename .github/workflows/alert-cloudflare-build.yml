@@ -7,61 +7,17 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: cloudflare-build-alert
-  cancel-in-progress: false
-
 jobs:
-  failure:
-    permissions:
-      issues: write
+  alert:
     if: "github.event.check_run.name == 'Workers Builds: nodewarden' && github.event.check_run.conclusion == 'failure'"
     runs-on: ubuntu-latest
     steps:
-      - name: Open or update alert issue
+      - name: Report Cloudflare build failure
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
           SHA: ${{ github.event.check_run.head_sha }}
           BUILD_URL: ${{ github.event.check_run.details_url }}
           BUILD_ID: ${{ github.event.check_run.external_id }}
         run: |
-          set -euo pipefail
-          short=${SHA:0:7}
-          title="[Cloudflare build failure] $short"
-          existing=$(gh issue list --repo "$REPO" --state open --limit 100 \
-            --json number,title --jq '.[] | select(.title | startswith("[Cloudflare build failure]")) | .number' | head -n1)
-          body=$(cat <<EOF
-          Cloudflare Workers build failed.
-
-          - Commit: $SHA
-          - Build: $BUILD_URL
-          - Build ID: $BUILD_ID
-
-          Review the build log before retrying. This workflow did not change or redeploy anything.
-          EOF
-          )
-          if [ -z "$existing" ]; then
-            gh issue create --repo "$REPO" --title "$title" --body "$body" --assignee "${REPO%%/*}"
-          else
-            gh issue comment "$existing" --repo "$REPO" --body "Build is still failing for \`$SHA\`."
-          fi
-
-  success:
-    permissions:
-      issues: write
-    if: "github.event.check_run.name == 'Workers Builds: nodewarden' && github.event.check_run.conclusion == 'success'"
-    runs-on: ubuntu-latest
-    steps:
-      - name: Close resolved alert issues
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          SHA: ${{ github.event.check_run.head_sha }}
-        run: |
-          set -euo pipefail
-          numbers=$(gh issue list --repo "$REPO" --state open --limit 100 \
-            --json number,title --jq '.[] | select(.title | startswith("[Cloudflare build failure]")) | .number')
-          for n in $numbers; do
-            gh issue close "$n" --repo "$REPO" --comment "Cloudflare build succeeded for \`$SHA\`; alert resolved."
-          done
+          echo "::error title=Cloudflare build failed::Commit $SHA — $BUILD_URL"
+          echo "Build ID: $BUILD_ID"
+          exit 1
