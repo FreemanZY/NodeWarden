@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   alert:
-    if: "github.event.check_run.name == 'Workers Builds: nodewarden' && github.event.check_run.conclusion == 'failure'"
+    if: "github.event.check_run.name == 'Workers Builds: nodewarden' && github.event.check_run.conclusion == 'failure' && github.event.check_run.check_suite.head_branch == 'main'"
     runs-on: ubuntu-latest
     steps:
       - name: Report Cloudflare build failure
