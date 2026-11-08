@@ -31,7 +31,16 @@ jobs:
           title="[Cloudflare build failure] $short"
           existing=$(gh issue list --repo "$REPO" --state open --limit 100 \
             --json number,title --jq '.[] | select(.title | startswith("[Cloudflare build failure]")) | .number' | head -n1)
-          body=$(printf 'Cloudflare Workers build failed.\n\n- Commit: `%s`\n- Build: %s\n- Build ID: `%s`\n\nReview the build log before retrying. This workflow did not change or redeploy anything.\n' "$SHA" "$BUILD_URL" "$BUILD_ID")
+          body=$(cat <<EOF
+          Cloudflare Workers build failed.
+
+          - Commit: `$SHA`
+          - Build: $BUILD_URL
+          - Build ID: `$BUILD_ID`
+
+          Review the build log before retrying. This workflow did not change or redeploy anything.
+          EOF
+          )
           if [ -z "$existing" ]; then
             gh issue create --repo "$REPO" --title "$title" --body "$body" --assignee "${REPO%%/*}"
           else
