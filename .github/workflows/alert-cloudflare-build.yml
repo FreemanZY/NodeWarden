@@ -34,9 +34,9 @@ jobs:
           body=$(cat <<EOF
           Cloudflare Workers build failed.
 
-          - Commit: `$SHA`
+          - Commit: $SHA
           - Build: $BUILD_URL
-          - Build ID: `$BUILD_ID`
+          - Build ID: $BUILD_ID
 
           Review the build log before retrying. This workflow did not change or redeploy anything.
           EOF
